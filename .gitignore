@@ -1,0 +1,7 @@
+.htaccess
+autoload.php
+bootstrap.php
+functions.php
+/etc
+/.idea
+/design
