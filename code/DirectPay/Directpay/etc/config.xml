@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Supun Sadeepa
+ * Magento 2.x DirectPay_IPG plugin
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <payment>
+            <directpay>
+                <model>DirectPay\Directpay\Model\Payment\DirectPay</model>
+                <title>DirectPay</title>
+                <active>1</active>
+                <order_status>pending</order_status>
+                <can_initialize>1</can_initialize>
+            </directpay>
+            <!-- payment-config -->
+        </payment>
+    </default>
+</config>
