@@ -60,35 +60,58 @@ class Response extends Action
 
     public function execute()
     {
-        $publicKey = $this->scopeConfig->getValue('payment/directpay/publicKey', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $postBody = (array)json_decode(file_get_contents('php://input'));
+        try {
+            $publicKey = $this->scopeConfig->getValue('payment/directpay/publicKey', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+            $postBody = (array)json_decode(file_get_contents('php://input'));
 
-        $signature = $postBody['signature'];
-        $dataString = $postBody['orderId'] . $postBody['trnId'] . $postBody['status'] . $postBody['desc'];
+            $signature = $postBody['signature'];
+            $dataString = $postBody['orderId'] . $postBody['trnId'] . $postBody['status'] . $postBody['desc'];
 
-        $signatureVerify = openssl_verify($dataString, base64_decode($signature), $publicKey, OPENSSL_ALGO_SHA256);
+            $this->logger->debug("PAYMENT RESPONSE | RESPONSE : " . json_encode($postBody));
 
-        if ($signatureVerify) {
+            $signatureVerify = openssl_verify($dataString, base64_decode($signature), $publicKey, OPENSSL_ALGO_SHA256);
 
-            $order = $this->orderRepository->get($postBody['orderId']);
+            if ($signatureVerify == 1) {
 
-            if ($order) {
-                if ($postBody['status'] === 'SUCCESS') {
+                echo " Signature Verification Success. ";
 
-                    $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true);
-                    $order->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
-                    $order->addStatusToHistory($order->getStatus(), 'Payment Processed Successfully.');
-                    $order->save();
+                $order = $this->orderRepository->get($postBody['orderId']);
+
+                if ($order) {
+                    if ($postBody['status'] === 'SUCCESS') {
+                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true);
+                        $order->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
+                        $order->addStatusToHistory($order->getStatus(), 'Payment Processed Successfully.');
+                        $order->save();
+
+                        echo " Payment Processed Successfully. ";
+
+                    } else {
+                        $order->setState(\Magento\Sales\Model\Order::STATE_CANCELED, true);
+                        $order->setStatus(\Magento\Sales\Model\Order::STATE_CANCELED);
+                        $order->addStatusToHistory($order->getStatus(), 'Payment Failed.');
+                        $order->save();
+
+                        echo " Payment Failed. State saved as CANCELLED. ";
+                    }
 
                     $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
 
                     if ($quote->getId()) {
                         $quote->setIsActive(0)->setReservedOrderId(null)->save();
                         $this->_checkoutSession->replaceQuote($quote);
+
+                        echo " Cart Invalidated. ";
                     }
 
+                } else {
+                    echo " Order Not Found. OrderId: " . $postBody['orderId'];
                 }
+            } else {
+                echo " Signature Verification Failed. ";
             }
+        } catch (\Exception $exception) {
+            echo " PAYMENT RESPONSE | EXCEPTION : " . $exception->getMessage() . " -> : " . $exception->getLine() . " ";
         }
     }
 
