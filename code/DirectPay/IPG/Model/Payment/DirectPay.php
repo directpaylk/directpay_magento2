@@ -1,6 +1,6 @@
 <?php
 
-namespace DirectPay\Directpay\Model\Payment;
+namespace DirectPay\IPG\Model\Payment;
 
 
 class DirectPay extends \Magento\Payment\Model\Method\AbstractMethod

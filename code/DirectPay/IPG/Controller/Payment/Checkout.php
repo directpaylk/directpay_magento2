@@ -1,6 +1,6 @@
 <?php
 
-namespace DirectPay\Directpay\Controller\Payment;
+namespace DirectPay\IPG\Controller\Payment;
 
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\Action;
@@ -19,6 +19,7 @@ class Checkout extends Action
     protected $_storeManager;
     protected $_orderFactory;
     protected $_formKey;
+    protected $_messageManager;
     private $order;
 
     public function __construct(
@@ -30,7 +31,8 @@ class Checkout extends Action
         \Magento\Checkout\Model\Session $checkoutSession,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Framework\Data\Form\FormKey $formKey,
-        \Magento\Sales\Api\Data\OrderInterface $order
+        \Magento\Sales\Api\Data\OrderInterface $order,
+        \Magento\Framework\Message\ManagerInterface $messageManager
     )
     {
         $this->logger = $logger;
@@ -41,6 +43,7 @@ class Checkout extends Action
         $this->_storeManager = $storeManager;
         $this->_formKey = $formKey;
         $this->_quoteFactory = $quoteFactory;
+        $this->_messageManager = $messageManager;
         parent::__construct($context);
     }
 
@@ -66,67 +69,135 @@ class Checkout extends Action
             if ($order->getStatus() === 'pending') {
 
                 $paymode = $this->scopeConfig->getValue('payment/directpay/pay_mode', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+                $secret = $this->scopeConfig->getValue('payment/directpay/secret', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
+
+                $baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
 
                 if (!$paymode) {
-                    $checkout_url = "https://pay.directpay.lk";
+                    $checkout_url = "https://gateway.directpay.lk/api/v3/create-session";
                 } else {
-                    $checkout_url = "https://testpay.directpay.lk";
+                    $checkout_url = "https://test-gateway.directpay.lk/api/v3/create-session";
                 }
 
-                $this->postToCheckout($checkout_url, $this->getPayload($order));
+                $sessionPayload = $this->getPayload($order);
+
+                $dataString = base64_encode(json_encode($sessionPayload));
+                $signature = 'hmac ' . hash_hmac('sha256', $dataString, $secret);
+
+                $ch = curl_init();
+
+                curl_setopt_array($ch, array(
+                    CURLOPT_URL => $checkout_url,
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_ENCODING => "",
+                    CURLOPT_MAXREDIRS => 10,
+                    CURLOPT_TIMEOUT => 30,
+                    CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                    CURLOPT_CUSTOMREQUEST => "POST",
+                    CURLOPT_POSTFIELDS => base64_encode(json_encode($sessionPayload)),
+                    CURLOPT_HTTPHEADER => [
+                        "Content-Type: application/json",
+                        "Authorization: $signature",
+                    ],
+                ));
+
+                $response = curl_exec($ch);
+
+                if ($paymode && curl_error($ch)) {
+                    var_dump(curl_errno($ch));
+                    var_dump(curl_error($ch));
+                }
+
+                curl_close($ch);
+
+                $getSession = json_decode($response);
+
+                if ($getSession->status == 200) {
+                    $link = $getSession->data->link;
+                    $paymentRedirect = $link;
+                } else {
+                    $paymentRedirect = '';
+                    $this->_messageManager->addErrorMessage(__('Unable to checkout. Please try again.'));
+                    $this->_redirect('checkout/cart');
+                }
+
+
+                $this->postToCheckout($paymentRedirect);
 
             } else {
                 $this->logger->debug('Order in unrecognized state: ' . $order->getState());
+                $this->_messageManager->addErrorMessage(__('Unable to checkout.'));
                 $this->_redirect('checkout/cart');
             }
         } catch (Exception $ex) {
             $this->logger->debug('An exception was encountered in directpay/payment/checkout: ' . $ex->getMessage());
             $this->logger->debug($ex->getTraceAsString());
-            $this->getMessageManager()->addErrorMessage(__('Unable to Checkout.'));
+            $this->_messageManager->addErrorMessage(__('Unable to checkout.'));
             $this->_redirect('checkout/cart');
         }
 
     }
 
-    private function postToCheckout($checkoutUrl, $payload)
+    private function postToCheckout($checkoutUrl)
     {
-        echo
-        "<html>
-            <body>
-            <form id='directPayCheckoutForm' action='$checkoutUrl' method='post'>";
-        foreach ($payload as $key => $value) {
-            echo "<input type='hidden' id='$key' name='$key' value='" . htmlspecialchars($value, ENT_QUOTES) . "'/>";
-        }
-        echo
-        '</form>
-            </body>';
-        echo
-        '<script>
-                var form = document.getElementById("directPayCheckoutForm");
+
+        echo '
+        <style>
+            .loader {
+              border: 2px solid #f3f3f3; /* Light grey */
+              border-top: 4px solid #1f369c; /* Blue */
+              border-radius: 50%;
+              width: 6vw;
+              height: 6vw;
+              animation: spin 0.5s linear infinite;
+              position: absolute;
+              left: 47vw;
+              top: 50vh;
+            }
+
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+
+            .align-content {
+              margin: auto;
+              width: 20vw;
+              text-align: center;
+              position: absolute;
+              top: 30vh;
+              left: 40vw;
+            }
+        </style>
+        <form id="directpay_payment_form" method="GET" action="' . $checkoutUrl . '">
+            <img src="https://cdn.directpay.lk/live/gateway/dp_visa_master_logo.png" alt="DirectPay_payment" max-width="20vw" class="align-content" />
+            <div class="loader"></div>
+            <script>
+                var form = document.getElementById(\'directpay_payment_form\');
                 form.submit();
             </script>
-        </html>';
+        </form>
+        ';
     }
 
     private function getPayload($order)
     {
         if ($order == null) {
             $this->logger->debug('Unable to get order from last order id.');
-            $this->getMessageManager()->addErrorMessage(__('Order Not Found!'));
+            $this->_messageManager->addErrorMessage(__('Order not found.'));
             $this->_redirect('checkout/onepage/error', array('_secure' => false));
         }
 
         $merchantId = $this->scopeConfig->getValue('payment/directpay/merchantid', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $apiKey = $this->scopeConfig->getValue('payment/directpay/apikey', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-        $privateKey = $this->scopeConfig->getValue('payment/directpay/privateKey', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
         $baseUrl = $this->_storeManager->getStore()->getBaseUrl(\Magento\Framework\UrlInterface::URL_TYPE_WEB);
 
+        date_default_timezone_set('Asia/Colombo');
         $grandTotal = number_format((float)$order->getGrandTotal(), 2, '.', '');
         $currency = $order->getOrderCurrencyCode();
-        $orderId = $order->getId();
+        $orderId = 'MG' . $order->getId() . date("His");
         $pluginName = 'magento-dp';
-        $pluginVersion = '2.x';
+        $pluginVersion = '3.0';
         $firstName = $order->getCustomerFirstname();
         $lastName = $order->getCustomerLastname();
         $email = $order->getData('customer_email');
@@ -141,54 +212,28 @@ class Checkout extends Action
             $description .= $itemData['name'] . ', ';
         }
 
-        $data = array(
-            '_mId' => $merchantId,
-            'api_key' => $apiKey,
-            '_returnUrl' => $returnUrl,
-            '_cancelUrl' => $cancelUrl,
-            '_responseUrl' => $responseUrl,
-            '_amount' => $grandTotal,
-            '_currency' => $currency,
-            '_reference' => $reference,
-            '_orderId' => $orderId,
-            '_pluginName' => $pluginName,
-            '_pluginVersion' => $pluginVersion,
-            '_description' => substr($description,0, -2),
-            '_firstName' => $firstName,
-            '_lastName' => $lastName,
-            '_email' => $email
-        );
+        $requestData = [
+            "merchant_id" => $merchantId,
+            "amount" => $grandTotal ? (string)$grandTotal : "0.00",
+            "source" => "magento-dp_v3.0",
+            "type" => "ONE_TIME",
+            "order_id" => (string)$orderId,
+            "currency" => $currency,
+            "response_url" => $responseUrl,
+            "return_url" => $returnUrl,
+            "first_name" => $firstName,
+            "last_name" => $lastName,
+            "email" => $email,
+            "phone" => $order->getShippingAddress()->getTelephone(),
+            "logo" => '',
+            "description" => substr($description, 0, -2),
+        ];
 
-        foreach ($data as $key => $value) {
-            $data[$key] = preg_replace('/\r\n|\r|\n/', ' ', $value);
+        foreach ($requestData as $key => $value) {
+            $requestData[$key] = preg_replace('/\r\n|\r|\n/', ' ', $value);
         }
 
-        $dataString = $merchantId .
-            $grandTotal .
-            $currency .
-            $pluginName .
-            $pluginVersion .
-            $returnUrl .
-            $cancelUrl .
-            $orderId .
-            $reference .
-            $firstName .
-            $lastName .
-            $email .
-            substr($description,0, -2) .
-            $apiKey .
-            $responseUrl;
-
-
-        $signature = null;
-        $pkeyid = openssl_pkey_get_private($privateKey);
-        $signResult = openssl_sign($dataString, $signature, $pkeyid, OPENSSL_ALGO_SHA256);
-        $signature = base64_encode($signature);
-        openssl_free_key($pkeyid);
-
-        $data['signature'] = $signature;
-
-        return $data;
+        return $requestData;
     }
 
 }

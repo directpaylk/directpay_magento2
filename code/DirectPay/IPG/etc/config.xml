@@ -9,7 +9,7 @@
     <default>
         <payment>
             <directpay>
-                <model>DirectPay\Directpay\Model\Payment\DirectPay</model>
+                <model>DirectPay\IPG\Model\Payment\DirectPay</model>
                 <title>DirectPay</title>
                 <active>1</active>
                 <order_status>pending</order_status>

@@ -20,14 +20,8 @@
                 <field id="merchantid" translate="label" type="text" sortOrder="2" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Merchant Id</label>
                 </field>
-                <field id="privateKey" translate="label" type="textarea" sortOrder="3" showInDefault="1" showInWebsite="0" showInStore="1">
-                    <label>Private Key</label>
-                </field>
-                <field id="publicKey" translate="label" type="textarea" sortOrder="4" showInDefault="1" showInWebsite="0" showInStore="1">
-                    <label>Public Key</label>
-                </field>
-                <field id="apikey" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
-                    <label>Api Key</label>
+                <field id="secret" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Secret Key</label>
                 </field>
                 <field id="pay_mode" translate="label" type="select" sortOrder="6" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Sandbox Mode</label>

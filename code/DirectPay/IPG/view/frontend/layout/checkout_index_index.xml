@@ -23,7 +23,7 @@
                                                             <item name="children" xsi:type="array">
                                                             <!-- merge payment method renders here -->
                                                                 <item name="directpay-payments" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">DirectPay_Directpay/js/view/payment/directpay</item>
+                                                                    <item name="component" xsi:type="string">DirectPay_IPG/js/view/payment/directpay</item>
                                                                     <item name="methods" xsi:type="array">
                                                                         <item name="directpay" xsi:type="array">
                                                                             <item name="isBillingAddressRequired" xsi:type="boolean">true</item>

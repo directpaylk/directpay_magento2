@@ -1,5 +1,5 @@
 <?php
-namespace DirectPay\Directpay\Model\Config;
+namespace DirectPay\IPG\Model\Config;
 
 use Magento\Checkout\Model\ConfigProviderInterface;
 

@@ -29,7 +29,7 @@ define(
         'use strict';
         return Component.extend({
             defaults: {
-                template: 'DirectPay_Directpay/payment/directpay'
+                template: 'DirectPay_IPG/payment/directpay'
             },
             initialize: function() {
                 this._super();

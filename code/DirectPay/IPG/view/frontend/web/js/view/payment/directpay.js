@@ -17,7 +17,7 @@ define(
         rendererList.push(
             {
                 type: 'directpay',
-                component: 'DirectPay_Directpay/js/view/payment/method-renderer/directpay-method'
+                component: 'DirectPay_IPG/js/view/payment/method-renderer/directpay-method'
             }
         );
 

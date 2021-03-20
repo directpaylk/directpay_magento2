@@ -10,7 +10,7 @@
     <type name="Magento\Checkout\Model\CompositeConfigProvider">
         <arguments>
             <argument name="configProviders" xsi:type="array">
-                <item name="directpay_custom_data" xsi:type="object">DirectPay\Directpay\Model\Config\DPConfigData</item>
+                <item name="directpay_custom_data" xsi:type="object">DirectPay\IPG\Model\Config\DPConfigData</item>
             </argument>
         </arguments>
     </type>

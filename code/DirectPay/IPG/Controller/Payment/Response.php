@@ -1,6 +1,6 @@
 <?php
 
-namespace DirectPay\Directpay\Controller\Payment;
+namespace DirectPay\IPG\Controller\Payment;
 
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\Action;
@@ -60,55 +60,82 @@ class Response extends Action
 
     public function execute()
     {
+        $log = 'DIRECTPAY | PAYMENT RESPONSE | ';
         try {
-            $publicKey = $this->scopeConfig->getValue('payment/directpay/publicKey', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
-            $postBody = (array)json_decode(file_get_contents('php://input'));
+            $postBody_raw = file_get_contents('php://input');
+            $postBody = json_decode(base64_decode($postBody_raw), true);
 
-            $signature = $postBody['signature'];
-            $dataString = $postBody['orderId'] . $postBody['trnId'] . $postBody['status'] . $postBody['desc'];
+            $this->logger->info($log . "BODY : " . $postBody_raw);
 
-            $this->logger->debug("PAYMENT RESPONSE | RESPONSE : " . json_encode($postBody));
+            $headers = array();
+            foreach ($_SERVER as $key => $value) {
+                if (substr($key, 0, 5) <> 'HTTP_') {
+                    continue;
+                }
+                $header = str_replace(' ', '-', ucwords(str_replace('_', ' ', strtolower(substr($key, 5)))));
+                $headers[$header] = $value;
+            }
 
-            $signatureVerify = openssl_verify($dataString, base64_decode($signature), $publicKey, OPENSSL_ALGO_SHA256);
+            $this->logger->info($log . "HEADERS : " . json_encode($headers));
 
-            if ($signatureVerify == 1) {
+            $transactionType = $postBody["type"];
+            $orderId = $postBody["order_id"];
+            $transactionId = $postBody["transaction_id"];
+            $transactionStatus = isset($postBody["transaction"]) ? $postBody["transaction"]["status"] : "-";
+            $transactionDesc = isset($postBody["transaction"]) ? $postBody["transaction"]["description"] : "-";
+            $paymentAmount = isset($postBody["transaction"]) ? $postBody["transaction"]["amount"] : "0.00";
+            $paymentCurrency = isset($postBody["transaction"]) ? $postBody["transaction"]["currency"] : "LKR";
 
-                echo " Signature Verification Success. ";
 
-                $order = $this->orderRepository->get($postBody['orderId']);
+            $secret = $this->scopeConfig->getValue('payment/directpay/secret', \Magento\Store\Model\ScopeInterface::SCOPE_STORE);
 
-                if ($order) {
-                    if ($postBody['status'] === 'SUCCESS') {
-                        $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true);
-                        $order->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
-                        $order->addStatusToHistory($order->getStatus(), 'Payment Processed Successfully.');
-                        $order->save();
+            $authHeaders = explode(' ', $headers['Authorization']);
 
-                        echo " Payment Processed Successfully. ";
+            if (count($authHeaders) == 2) {
+                $hash = hash_hmac('sha256', $postBody_raw, $secret);
+                if (strcmp($authHeaders[1], $hash) == 0) {
+                    echo " Signature Verified. ";
+
+                    $formattedOrderId = substr($orderId, 2, -6);
+
+                    $order = $this->orderRepository->get($formattedOrderId);
+
+                    if ($order) {
+                        if ($transactionStatus == 'SUCCESS') {
+                            $order->setState(\Magento\Sales\Model\Order::STATE_PROCESSING, true);
+                            $order->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
+                            $order->addStatusToHistory($order->getStatus(), 'Payment Processed Successfully.');
+                            $order->save();
+
+                            echo " Payment Processed Successfully. ";
+
+                        } else {
+                            $order->setState(\Magento\Sales\Model\Order::STATE_CANCELED, true);
+                            $order->setStatus(\Magento\Sales\Model\Order::STATE_CANCELED);
+                            $order->addStatusToHistory($order->getStatus(), 'Payment Failed.');
+                            $order->save();
+
+                            echo " Payment Failed. State saved as CANCELLED. ";
+                        }
+
+                        $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
+
+                        if ($quote->getId()) {
+                            $quote->setIsActive(0)->setReservedOrderId(null)->save();
+                            $this->_checkoutSession->replaceQuote($quote);
+
+                            echo " Cart Invalidated. ";
+                        }
 
                     } else {
-                        $order->setState(\Magento\Sales\Model\Order::STATE_CANCELED, true);
-                        $order->setStatus(\Magento\Sales\Model\Order::STATE_CANCELED);
-                        $order->addStatusToHistory($order->getStatus(), 'Payment Failed.');
-                        $order->save();
-
-                        echo " Payment Failed. State saved as CANCELLED. ";
-                    }
-
-                    $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
-
-                    if ($quote->getId()) {
-                        $quote->setIsActive(0)->setReservedOrderId(null)->save();
-                        $this->_checkoutSession->replaceQuote($quote);
-
-                        echo " Cart Invalidated. ";
+                        echo " Order Not Found. OrderId: " . $orderId . ' | originalOrderId: ' . $formattedOrderId;
                     }
 
                 } else {
-                    echo " Order Not Found. OrderId: " . $postBody['orderId'];
+                    echo " Signature Verification Failed. ";
                 }
             } else {
-                echo " Signature Verification Failed. ";
+                echo " Invalid Signature. Headers: " . json_encode($headers) . " | Raw Headers: " . json_encode($_SERVER);
             }
         } catch (\Exception $exception) {
             echo " PAYMENT RESPONSE | EXCEPTION : " . $exception->getMessage() . " -> : " . $exception->getLine() . " ";
