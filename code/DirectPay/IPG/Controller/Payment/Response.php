@@ -109,6 +109,15 @@ class Response extends Action
 
                             echo " Payment Processed Successfully. ";
 
+                            $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
+
+                            if ($quote->getId()) {
+                                $quote->setIsActive(0)->setReservedOrderId(null)->save();
+                                $this->_checkoutSession->replaceQuote($quote);
+
+                                echo " Cart Invalidated. ";
+                            }
+
                         } else {
                             $order->setState(\Magento\Sales\Model\Order::STATE_CANCELED, true);
                             $order->setStatus(\Magento\Sales\Model\Order::STATE_CANCELED);
@@ -117,15 +126,6 @@ class Response extends Action
 
                             echo " Payment Failed. State saved as CANCELLED. ";
                         }
-//
-//                        $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
-//
-//                        if ($quote->getId()) {
-//                            $quote->setIsActive(0)->setReservedOrderId(null)->save();
-//                            $this->_checkoutSession->replaceQuote($quote);
-//
-//                            echo " Cart Invalidated. ";
-//                        }
 
                     } else {
                         echo " Order Not Found. OrderId: " . $orderId . ' | originalOrderId: ' . $formattedOrderId;

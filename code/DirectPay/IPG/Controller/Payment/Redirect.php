@@ -58,16 +58,6 @@ class Redirect extends Action
             $this->_redirect('checkout/cart', array('_secure' => false));
         } else {
             if ($status == 'SUCCESS') {
-                $formattedOrderId = substr($orderId, 2, -6);
-                $order = $this->orderRepository->get($formattedOrderId);
-
-                $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
-
-                if ($quote->getId()) {
-                    $quote->setIsActive(0)->setReservedOrderId(null)->save();
-                    $this->_checkoutSession->replaceQuote($quote);
-                }
-
                 $this->_messageManager->addSuccessMessage('Payment Successful!');
                 $this->_redirect('checkout/onepage/success', array('_secure' => false));
             } else {
