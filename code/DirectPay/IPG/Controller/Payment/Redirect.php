@@ -19,6 +19,7 @@ class Redirect extends Action
     protected $_quoteFactory;
     protected $_checkoutSession;
     protected $_messageManager;
+    protected $orderRepository;
 
     public function __construct(
         \Magento\Quote\Model\QuoteFactory $quoteFactory,
@@ -27,6 +28,7 @@ class Redirect extends Action
         \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
         \Magento\Sales\Model\OrderFactory $orderFactory,
         \Magento\Framework\Message\ManagerInterface $messageManager,
+        \Magento\Sales\Api\OrderRepositoryInterface $orderRepository,
         Context $context,
         LoggerInterface $logger
     )
@@ -39,6 +41,7 @@ class Redirect extends Action
         $this->_checkoutSession = $checkoutSession;
         $this->logger = $logger;
         $this->_messageManager = $messageManager;
+        $this->orderRepository = $orderRepository;
         parent::__construct($context);
     }
 
@@ -55,6 +58,16 @@ class Redirect extends Action
             $this->_redirect('checkout/cart', array('_secure' => false));
         } else {
             if ($status == 'SUCCESS') {
+                $formattedOrderId = substr($orderId, 2, -6);
+                $order = $this->orderRepository->get($formattedOrderId);
+
+                $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
+
+                if ($quote->getId()) {
+                    $quote->setIsActive(0)->setReservedOrderId(null)->save();
+                    $this->_checkoutSession->replaceQuote($quote);
+                }
+
                 $this->_messageManager->addSuccessMessage('Payment Successful!');
                 $this->_redirect('checkout/onepage/success', array('_secure' => false));
             } else {

@@ -48,6 +48,12 @@ define(
                 };
             },
             afterPlaceOrder : function () {
+                var buttons = document.getElementsByClassName('action checkout');
+
+                for (var i = 0; i < buttons.length; i++) {
+                    buttons[i].disabled = true;
+                }
+
                 window.location.replace(url.build('directpay/payment/checkout'));
             },
             getDirectPayLogo : function(){

@@ -117,15 +117,15 @@ class Response extends Action
 
                             echo " Payment Failed. State saved as CANCELLED. ";
                         }
-
-                        $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
-
-                        if ($quote->getId()) {
-                            $quote->setIsActive(0)->setReservedOrderId(null)->save();
-                            $this->_checkoutSession->replaceQuote($quote);
-
-                            echo " Cart Invalidated. ";
-                        }
+//
+//                        $quote = $this->_quoteFactory->create()->loadByIdWithoutStore($order->getQuoteId());
+//
+//                        if ($quote->getId()) {
+//                            $quote->setIsActive(0)->setReservedOrderId(null)->save();
+//                            $this->_checkoutSession->replaceQuote($quote);
+//
+//                            echo " Cart Invalidated. ";
+//                        }
 
                     } else {
                         echo " Order Not Found. OrderId: " . $orderId . ' | originalOrderId: ' . $formattedOrderId;
