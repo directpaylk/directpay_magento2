@@ -11,7 +11,7 @@
             <group id="directpay" translate="label" type="text" sortOrder="100" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>DirectPay</label>
                 <comment>
-                    <![CDATA[<img src="https://cdn.directpay.lk/live/gateway/dp_visa_master_logo.png" alt="dp_payment_logo"><br><a href="https://www.directpay.lk/ipg/" target="_blank">Click here to sign up for DirectPay</a>]]>
+                    <![CDATA[<img src="https://directpay-cdn.s3.us-east-2.amazonaws.com/live/gateway/dp_paynow_amex_small_min.png" alt="dp_payment_logo" ><br><a href="https://www.directpay.lk/ipg/" target="_blank">Click here to sign up for DirectPay</a>]]>
                 </comment>
                 <field id="active" translate="label" type="select" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Enabled</label>

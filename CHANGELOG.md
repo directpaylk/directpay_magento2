@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 -  Card verification failed transactions automatically redirected to cart.
 -  Installation steps have slight changes.
 -  Readme.txt added.
+

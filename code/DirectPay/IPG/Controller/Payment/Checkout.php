@@ -170,7 +170,7 @@ class Checkout extends Action
             }
         </style>
         <form id="directpay_payment_form" method="GET" action="' . $checkoutUrl . '">
-            <img src="https://cdn.directpay.lk/live/gateway/dp_visa_master_logo.png" alt="DirectPay_payment" max-width="20vw" class="align-content" />
+            <img src="https://directpay-cdn.s3.us-east-2.amazonaws.com/live/gateway/dp_paynow_amex_small_min.png" alt="DirectPay_payment" class="align-content" />
             <div class="loader"></div>
             <script>
                 var form = document.getElementById(\'directpay_payment_form\');

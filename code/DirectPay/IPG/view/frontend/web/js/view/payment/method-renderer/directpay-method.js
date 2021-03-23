@@ -57,7 +57,7 @@ define(
                 window.location.replace(url.build('directpay/payment/checkout'));
             },
             getDirectPayLogo : function(){
-                return 'https://cdn.directpay.lk/live/gateway/dp_visa_master_logo.png';
+                return 'https://directpay-cdn.s3.us-east-2.amazonaws.com/live/gateway/dp_paynow_amex_small_min.png';
             }
         });
     }
