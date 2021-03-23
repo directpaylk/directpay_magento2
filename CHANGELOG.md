@@ -12,3 +12,10 @@ All notable changes to this project will be documented in this file.
 -  Installation steps have slight changes.
 -  Readme.txt added.
 
+## [3.0]
+### Changed
+- IPG v3 added with AMEX support.
+- Failed payment status changed as CANCELLED.
+- Cart invalidated only if payment success.
+- Installation steps changed.
+- Steps added for migration from older plugin versions.

@@ -11,7 +11,7 @@ $ cd ..
 $ bin/magento cache:clean 
 $ bin/magento cache:flush 
 $ bin/magento setup:upgrade
-$ bin/magento module:enable DirectPay_Directpay --clear-static-content
+$ bin/magento module:enable DirectPay_IPG --clear-static-content
 $ bin/magento setup:di:compile
 ```
 3. Navigate to `https://<your_server_domain>/admin/` in your browser to configure DirectPay Payment.
@@ -22,3 +22,8 @@ $ bin/magento setup:di:compile
 >If `DirectPay` is not visible as a payment method, try clearing cache from ``System > Cache Management``.
 
 [Click here](https://www.directpay.lk/ipg/) to register for DirectPay.
+
+## Migration from older versions
+
+1. Remove `code/DirectPay` folder and all its contents.
+2. Proceed with above Installation steps.
