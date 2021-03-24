@@ -1,6 +1,7 @@
 # Magento-2.x-DirectPay IPG Plugin
 
 ## Installation
+>If you are migrating from an older version of plugin, please refer `Migration from older versions` section below.
 
 >Please make sure that `app/` directory is writable.
 

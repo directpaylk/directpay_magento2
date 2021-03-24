@@ -4,6 +4,8 @@
 
 > Installation
 
+!NOTE: If you are migrating from an older version of plugin, please refer 'Migration from older versions' section below.
+
 !IMPORTANT: Please make sure that app/ directory is writable.
 
 1. Copy `code` folder and its contents into `app/` directory.
